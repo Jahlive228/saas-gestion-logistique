@@ -196,7 +196,8 @@ async function main() {
     'DELIVERED', // Plus de livraisons livrées pour stats
   ];
 
-  for (const company of companies) {
+  for (let companyIndex = 0; companyIndex < companies.length; companyIndex++) {
+    const company = companies[companyIndex];
     const companyWarehouses = warehouses.filter(w => w.companyId === company.id);
     const companyDrivers = drivers.filter(d => d.companyId === company.id);
     const companyProducts = products.filter(p =>
@@ -232,11 +233,11 @@ async function main() {
         });
       }
 
-      // Générer référence
-      const count = await prisma.delivery.count({
+      // Générer référence unique en incluant l'index de l'entreprise et un compteur par entreprise
+      const companyDeliveriesCount = await prisma.delivery.count({
         where: { companyId: company.id },
       });
-      const reference = `DEL-${new Date().getFullYear()}-${String(count + 1).padStart(6, '0')}`;
+      const reference = `DEL-${new Date().getFullYear()}-C${companyIndex + 1}-${String(companyDeliveriesCount + 1).padStart(6, '0')}`;
 
       const delivery = await prisma.delivery.create({
         data: {

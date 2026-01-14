@@ -165,9 +165,13 @@ async function main() {
         },
       });
 
-      const driver = await prisma.driver.create({
-        data: {
-          licenseNumber: `LIC-${company.id.substring(0, 4)}-${String(i).padStart(3, '0')}`,
+      // Créer un numéro de licence unique en incluant l'index de l'entreprise
+      const licenseNumber = `LIC-C${companyIndex + 1}-${String(i).padStart(3, '0')}`;
+      const driver = await prisma.driver.upsert({
+        where: { licenseNumber },
+        update: {},
+        create: {
+          licenseNumber,
           vehicleType: ['car', 'truck', 'motorcycle'][i % 3],
           vehiclePlate: `${String.fromCharCode(65 + i)}B-${Math.floor(Math.random() * 999)}-${String.fromCharCode(65 + i)}${String.fromCharCode(65 + i)}`,
           isAvailable: Math.random() > 0.3, // 70% disponibles

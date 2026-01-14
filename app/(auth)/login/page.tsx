@@ -51,18 +51,21 @@ export default function LoginPage() {
 
       // Rediriger selon le rôle
       const role = data.user?.role;
+      
+      // Utiliser window.location pour forcer une redirection complète et s'assurer que les cookies sont pris en compte
       if (role === 'OWNER') {
-        router.push('/platform/dashboard');
+        window.location.href = '/platform/dashboard';
       } else if (role === 'COMPANY_ADMIN') {
-        router.push('/company/dashboard');
+        window.location.href = '/company/dashboard';
       } else if (role === 'WAREHOUSE_AGENT') {
-        router.push('/warehouse/dashboard');
+        window.location.href = '/warehouse/dashboard';
       } else if (role === 'DRIVER') {
-        router.push('/driver/dashboard');
+        window.location.href = '/driver/dashboard';
       } else {
-        router.push('/');
+        window.location.href = '/';
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('Erreur de connexion. Veuillez réessayer.');
       setIsLoading(false);
     }

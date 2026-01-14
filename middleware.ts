@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyAccessToken, decodeToken } from '@/lib/auth/jwt';
-import { clearAuthCookies } from '@/lib/auth/cookies';
+import { clearAuthCookies, setAuthCookies } from '@/lib/auth/cookies';
 import { refreshSession } from '@/lib/auth/session';
 
 // Routes publiques (pas besoin d'authentification)
@@ -129,39 +129,6 @@ export async function middleware(request: NextRequest) {
     }
     return NextResponse.redirect(new URL('/login', request.url));
   }
-}
-
-// Import de setAuthCookies pour le middleware
-async function setAuthCookies(
-  response: NextResponse,
-  accessToken: string,
-  refreshToken: string
-): Promise<NextResponse> {
-  response.cookies.set('token', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 15, // 15 minutes
-  });
-
-  response.cookies.set('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 jours
-  });
-
-  response.cookies.set('session', 'active', {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 15, // 15 minutes
-  });
-
-  return response;
 }
 
 export const config = {

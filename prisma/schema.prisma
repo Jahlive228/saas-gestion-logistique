@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -38,14 +38,15 @@ enum StockMovementType {
 
 // Owner de la plateforme SaaS
 model PlatformOwner {
-  id               String   @id @default(cuid())
-  email            String   @unique
+  id               String          @id @default(cuid())
+  email            String          @unique
   password         String // Hash bcrypt
   name             String
-  twoFactorEnabled Boolean  @default(false)
+  twoFactorEnabled Boolean         @default(false)
   twoFactorSecret  String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  refreshTokens    RefreshToken[] // Tokens de rafraîchissement
 
   @@map("platform_owners")
 }
@@ -293,14 +294,17 @@ model DeliveryItem {
 // ============================================
 
 model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id              String         @id @default(cuid())
+  token           String         @unique
+  userId          String?        // Optionnel pour User
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platformOwnerId String?        // Optionnel pour PlatformOwner
+  platformOwner   PlatformOwner? @relation(fields: [platformOwnerId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime
+  createdAt       DateTime       @default(now())
 
   @@index([userId])
+  @@index([platformOwnerId])
   @@index([expiresAt])
   @@map("refresh_tokens")
 }

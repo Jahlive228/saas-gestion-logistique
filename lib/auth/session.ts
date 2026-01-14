@@ -21,10 +21,14 @@ export async function createSession(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 jours
 
+  // Déterminer si c'est un User ou un PlatformOwner
+  const isPlatformOwner = role === 'OWNER';
+  
   await prisma.refreshToken.create({
     data: {
       token: refreshToken,
-      userId,
+      userId: isPlatformOwner ? undefined : userId,
+      platformOwnerId: isPlatformOwner ? userId : undefined,
       expiresAt,
     },
   });
@@ -45,7 +49,10 @@ export async function refreshSession(
     // Vérifier que le token existe en base et n'est pas expiré
     const tokenRecord = await prisma.refreshToken.findUnique({
       where: { token: refreshToken },
-      include: { user: true },
+      include: { 
+        user: true,
+        platformOwner: true,
+      },
     });
 
     if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
@@ -56,34 +63,62 @@ export async function refreshSession(
       return null;
     }
 
-    // Récupérer les informations utilisateur
-    const user = tokenRecord.user;
+    // Déterminer si c'est un User ou un PlatformOwner
+    let userData: {
+      id: string;
+      email: string;
+      role: Role;
+      companyId: string | null;
+    };
+
+    if (tokenRecord.user) {
+      // C'est un User
+      userData = {
+        id: tokenRecord.user.id,
+        email: tokenRecord.user.email,
+        role: tokenRecord.user.role,
+        companyId: tokenRecord.user.companyId,
+      };
+    } else if (tokenRecord.platformOwner) {
+      // C'est un PlatformOwner
+      userData = {
+        id: tokenRecord.platformOwner.id,
+        email: tokenRecord.platformOwner.email,
+        role: 'OWNER',
+        companyId: null,
+      };
+    } else {
+      return null;
+    }
 
     // Générer de nouveaux tokens
     const accessToken = generateAccessToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId,
+      userId: userData.id,
+      email: userData.email,
+      role: userData.role,
+      companyId: userData.companyId,
     });
 
     const newRefreshToken = generateRefreshToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId,
+      userId: userData.id,
+      email: userData.email,
+      role: userData.role,
+      companyId: userData.companyId,
     });
 
     // Mettre à jour le refresh token en base
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
+    const isPlatformOwner = userData.role === 'OWNER';
+
     await prisma.$transaction([
       prisma.refreshToken.delete({ where: { token: refreshToken } }),
       prisma.refreshToken.create({
         data: {
           token: newRefreshToken,
-          userId: user.id,
+          userId: isPlatformOwner ? undefined : userData.id,
+          platformOwnerId: isPlatformOwner ? userData.id : undefined,
           expiresAt,
         },
       }),
